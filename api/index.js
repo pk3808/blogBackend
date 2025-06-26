@@ -22,6 +22,9 @@ mongoose.connect(process.env.MONGO_URI)
 // Use routes for blogs and categories
 app.use('/api/blogs', blogRoutes);
 app.use('/api/categories', categoryRoutes);
+app.get('/test', (req, res) => {
+  res.send('The API is working fine!');
+});
 
 const PORT = process.env.PORT || 5000;
 
