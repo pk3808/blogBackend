@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "env": {
+    "MONGO_URI": "mongodb+srv://pk2155584:uR7GTDOEpC7dbM6R@cluster0.aztdrgm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+  }
+}
