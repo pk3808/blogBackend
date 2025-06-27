@@ -6,8 +6,10 @@ const dotenv = require('dotenv');
 const blogRoutes = require('../routes/blogs');
 const categoryRoutes = require('../routes/categories');
 
-dotenv.config(); // Load environment variables
+// Load environment variables
+dotenv.config();
 
+// Initialize Express app
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
@@ -22,18 +24,19 @@ mongoose.connect(process.env.MONGO_URI)
 // Use routes for blogs and categories
 app.use('/api/blogs', blogRoutes);
 app.use('/api/categories', categoryRoutes);
+
+// Test route
 app.get('/test', (req, res) => {
   res.send('The API is working fine!');
 });
 
-// const PORT = process.env.PORT || 5000;
-
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
 // Export the Express app for Vercel serverless function
-module.exports = (req, res) => {
-  app(req, res);  // Express to handle the request
-};
+module.exports = { app };
 
+// If running locally, start the server on port 5000
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
