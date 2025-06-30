@@ -5,6 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const blogRoutes = require('../routes/blogs');
 const categoryRoutes = require('../routes/categories');
+const authRoutes = require('../routes/auth');
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Use routes for blogs and categories
 app.use('/api/blogs', blogRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/auth', authRoutes); 
 
 // Test route
 app.get('/test', (req, res) => {
