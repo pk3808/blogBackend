@@ -74,12 +74,14 @@ router.post(
   }
 );
 
-// 2. Create Admin Route (for initial setup)
+
+// 2. Create Admin or User Route
 router.post(
-  '/create-admin',
+  '/create-account',
   [
     check('email', 'Please include a valid email').isEmail(),
     check('password', 'Password is required').exists().isLength({ min: 6 }),
+    check('accountType', 'Account type is required').isIn(['admin', 'user']),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -87,28 +89,42 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { email, password, accountType } = req.body;
 
     try {
-      // Check if admin already exists
-      const existingAdmin = await Admin.findOne({ email });
-      if (existingAdmin) {
-        return res.status(400).json({ msg: 'Admin already exists' });
+      // Check if account already exists
+      const existingUser = await Admin.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ msg: 'Account already exists' });
       }
 
       // Hash the password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Create a new admin user
-      const newAdmin = new Admin({
+      // Create a new account
+      const newAccount = new Admin({
         email,
         password: hashedPassword,
+        accountType,
       });
 
-      await newAdmin.save();
+      if (accountType === 'user') {
+        // Generate OTP for email verification
+        const otp = Math.floor(100000 + Math.random() * 900000);  // 6-digit OTP
+        newAccount.otp = otp;  // Store OTP in database for verification
+        newAccount.isVerified = false;  // Initially, the user is not verified
 
-      res.status(201).json({ msg: 'Admin created successfully', admin: newAdmin });
+        // Send OTP to user email
+        await sendOtpEmail(email, otp);  // Send OTP email
+      }
+
+      await newAccount.save();
+
+      res.status(201).json({
+        msg: `${accountType.charAt(0).toUpperCase() + accountType.slice(1)} created successfully`,
+        account: newAccount,
+      });
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
@@ -116,7 +132,26 @@ router.post(
   }
 );
 
-// 3. Forgot Password Route
+// Helper function to send OTP email
+const sendOtpEmail = async (email, otp) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,  // Gmail email (from .env file)
+      pass: process.env.GMAIL_PASS,   // Gmail app password (from .env file)
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: email,
+    subject: 'Email Verification OTP',
+    text: `Your OTP for email verification is: ${otp}`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 // 3. Forgot Password Route
 router.post(
   '/forgot-password',
@@ -197,5 +232,39 @@ router.post(
     }
   }
 );
+
+// 5. Verify OTP for User
+router.post(
+  '/verify-otp',
+  [check('email', 'Please include a valid email').isEmail(), check('otp', 'OTP is required').exists()],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, otp } = req.body;
+
+    try {
+      const user = await Admin.findOne({ email });
+      if (!user) {
+        return res.status(400).json({ msg: 'No user found with this email' });
+      }
+
+      if (user.otp !== otp) {
+        return res.status(400).json({ msg: 'Invalid OTP' });
+      }
+
+      user.isVerified = true;  // Mark the user as verified
+      await user.save();
+
+      res.json({ msg: 'Email verified successfully' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  }
+);
+
 
 module.exports = router;
