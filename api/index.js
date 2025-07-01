@@ -33,7 +33,10 @@ app.get('/test', (req, res) => {
 });
 
 // Export the Express app for Vercel serverless function
-module.exports = { app };
+// module.exports = { app };
+module.exports = (req, res) => {
+  app(req, res); // Forward the request and response to the Express app
+};
 
 // If running locally, start the server on port 5000
 // if (process.env.NODE_ENV !== 'production') {
